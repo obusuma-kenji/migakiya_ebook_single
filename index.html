@@ -1,0 +1,313 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>『会社の磨き屋』— eBook (single-file)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink: #1f2937;
+    --paperA: #fff;
+    --paperB: #f8fafc;
+    --ui: rgba(255,255,255,0.8);
+  }
+  [data-theme="sepia"]{
+    --ink: #3c2f2f;
+    --paperA: #fff4e6;
+    --paperB: #ffefe0;
+    --ui: rgba(255,245,230,0.9);
+  }
+  [data-theme="dark"]{
+    --ink: #e5e7eb;
+    --paperA: #0f1115;
+    --paperB: #121520;
+    --ui: rgba(17,24,39,0.7);
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; background: linear-gradient(135deg,var(--paperA),var(--paperB));
+    color: var(--ink); font-family: 'Noto Sans JP', system-ui, -apple-system, Segoe UI, Roboto, 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', 'Yu Gothic UI', 'YuGothic', Meiryo, sans-serif;
+  }
+  .noise{position:fixed;inset:0;pointer-events:none;opacity:.05;mix-blend:overlay;background-image:radial-gradient(currentColor 1px,transparent 1px);background-size:12px 12px}
+  header{position:sticky;top:0;z-index:10;backdrop-filter:blur(8px);background:var(--ui);border-bottom:1px solid rgba(255,255,255,.2)}
+  header .bar{max-width:1100px;margin:0 auto;padding:10px 14px;display:flex;gap:8px;align-items:center}
+  header .title{font-weight:700;letter-spacing:.02em}
+  header .spacer{flex:1}
+  button,select,input[type=range]{
+    color:inherit;background:transparent;border:1px solid rgba(255,255,255,.2);
+    padding:6px 10px;border-radius:10px;cursor:pointer
+  }
+  button:hover{background:rgba(255,255,255,.1)}
+  .grid{max-width:1100px;margin:0 auto;padding:18px 14px;display:grid;grid-template-columns:1fr;gap:16px}
+  @media (min-width:960px){ .grid.toc-open{grid-template-columns:280px 1fr} }
+  aside{background:var(--ui);border:1px solid rgba(255,255,255,.2);border-radius:16px;padding:12px;max-height:72vh;overflow:auto}
+  .viewer{background:var(--ui);border:1px solid rgba(255,255,255,.2);border-radius:16px;padding:16px;box-shadow:0 10px 40px rgba(0,0,0,.1);height:72vh;overflow:hidden;position:relative}
+  .pages{height:100%;display:grid;gap:16px}
+  .pages.spread{grid-template-columns:1fr 1fr}
+  .page{height:100%;border-radius:12px;background:linear-gradient(to bottom right,#fff, #fff);color:#111;overflow:auto;border:1px solid rgba(0,0,0,.05)}
+  [data-theme="dark"] .page{background:linear-gradient(to bottom right,#0b0e14,#12151d);color:#e5e7eb;border-color:#000}
+  [data-theme="sepia"] .page{background:linear-gradient(to bottom right,#fffdf7,#fff5e9)}
+  .page article{white-space:pre-wrap;padding:22px;letter-spacing:.01em;user-select:text}
+  .nav{pointer-events:none;position:absolute;inset:0;display:flex;justify-content:space-between;align-items:center}
+  .nav > div{pointer-events:auto}
+  .round{border-radius:999px;padding:8px 10px;background:transparent}
+  .footer{display:flex;gap:10px;align-items:center;margin-top:10px}
+  progress{width:100%;height:8px}
+  .badge{display:inline-block;border:1px solid rgba(255,255,255,.2);padding:4px 8px;border-radius:999px;font-size:12px;margin-right:6px}
+  .linkish{text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+  .muted{opacity:.65;font-size:12px}
+</style>
+</head>
+<body data-theme="sepia">
+<div class="noise"></div>
+<header>
+  <div class="bar">
+    <div>📖</div>
+    <div class="title">『会社の磨き屋』— Stylish eBook</div>
+    <div class="spacer"></div>
+
+    <button id="themeBtn" title="テーマ切替">🎨 テーマ</button>
+    <div class="muted" style="display:none" id="fontLabel"></div>
+    <button id="smaller" title="小さく">A−</button>
+    <span class="muted" id="fontSizeView"></span>
+    <button id="bigger" title="大きく">A＋</button>
+
+    <label class="muted" style="margin-left:8px">行間 <input id="lh" type="range" min="1.4" max="2.2" step="0.1" value="1.9" /></label>
+
+    <button id="spreadBtn" title="見開き">🗞 見開き</button>
+    <button id="tocBtn" title="目次">📋 目次</button>
+    <button id="bmBtn" title="ブックマーク">🔖 しおり</button>
+  </div>
+  <div style="height:4px;background:rgba(255,255,255,.2);position:relative">
+    <div id="progressBar" style="height:4px;background:linear-gradient(90deg,#34d399,#06b6d4);width:0%"></div>
+  </div>
+</header>
+
+<div id="grid" class="grid">
+  <aside id="toc" style="display:none">
+    <div class="muted">目次</div>
+    <ul id="tocList" style="list-style:none;padding-left:0"></ul>
+    <div id="bmListWrap" style="margin-top:12px;display:none">
+      <div class="muted">ブックマーク</div>
+      <div id="bmList"></div>
+    </div>
+  </aside>
+
+  <div>
+    <div class="viewer">
+      <div id="pages" class="pages"></div>
+      <div class="nav">
+        <div><button class="round" id="prev">←</button></div>
+        <div><button class="round" id="next">→</button></div>
+      </div>
+    </div>
+    <div class="footer">
+      <span class="muted" id="pageInfo"></span>
+      <input type="range" id="slider" min="0" max="0" value="0" style="flex:1"/>
+      <span class="muted" id="hint" style="white-space:nowrap"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+  const state = {
+    theme: localStorage.getItem('eb.theme') || 'sepia',
+    font: parseInt(localStorage.getItem('eb.font') || '18', 10),
+    lh: parseFloat(localStorage.getItem('eb.lh') || '1.9'),
+    spread: JSON.parse(localStorage.getItem('eb.spread') || 'true'),
+    page: parseInt(localStorage.getItem('eb.page') || '0', 10),
+    bm: JSON.parse(localStorage.getItem('eb.bm') || '[]')
+  };
+
+  const content = 'ビジネス小説：『会社の磨き屋』\n\nプロローグ\n\n2025年8月、埼玉県の片隅。田中製作所の社長、田中健司（52歳）の背中は、油と汗の匂いが\n染みついた作業着の上からでもわかるほど、重く丸まっていた。先代である父から継いだ金属加工の工場は、赤字ではない。しかし、成長もしていない。まるで熱帯の無風地帯のように、ただ暑く、息苦しい停滞感が工場全体を覆っていた。\n\n「10年後？冗談でしょう。来月の資金繰りで頭がいっぱいですよ」\n\n取引銀行の紹介でやってきたコンサルタント、佐藤由美（38歳）に、健司は吐き捨てるように言った。細身のスーツを着こなした彼女は、いかにも「横文字」を並べ立てそうな雰囲気をまとっていた。どうせまた、DXだのブランディングだの、うちみたいな町工場には縁のない話をされるのだろう。\n\n由美は微笑みを崩さず、意外な言葉を口にした。\n\n「田中社長、私は『会社の磨き上げ』を専門にしています。ブランディングなんて、メッキみたいなものですから嫌いなんです。本質的な輝きは、どんな会社にも必ずありますから」\n\n『磨き上げ』。その言葉に、職人である健司の耳がわずかに動いた.\n\n第一章：未来を描けない男\n\n最初の面談は、工場の隅にある小さな事務所で行われた。由美は分厚い経営資料ではなく、一枚のシンプルな紙を取り出した。\n\n「社長、少しだけ工場のことは忘れてみませんか？」\n\n由美は、健司の予想とは全く違う質問を始めた。「もし、時間とお金に一切の制約がなかったら、どんな『夢の休暇』を過ごしたいですか？」\n\n「休暇…？」健司は面食らった。もう何年も、まともな休みなど取っていない。「…そうだな。北海道で、フライフィッシングでもしてみたいかな。親父と行ったきりだ」\n\n「素敵な休暇ですね。では、『完璧な一日』はどんな日ですか？」\n\n健司の脳裏に浮かんだのは、複雑な部品を自分の手で完璧に仕上げた時の達成感、若手に技術を教えている時の充実感、そして、埃っぽい事務所ではなく、妻の待つ自宅で温かい夕食をとる、ささやかな情景だった。\n\nぽつりぽつりと語る健司の話を、由美は熱心にメモしている。事業計画もSWOT分析も出てこない奇妙なコンサルティングに、健司は戸惑いながらも、少しずつ心がほぐれていくのを感じていた。\n\n「ありがとうございます」由美は顔を上げた。「社長が北海道で一週間釣りをするために、この工場はどうなっている必要がありますか？毎日、奥様と夕食をとるためには、何が変わる必要がありますか？」\n\nハッとさせられた。目的は「売上〇%アップ」ではない。「自分が釣りに行くため」。その方が、よほど具体的で、切実だった。会社の未来と、自分の人生が初めて繋がった気がした。\n\n第二章：最初のひと磨き\n\n「まず、ここから磨きましょう」\n\n由美が次に提案したのは、これまた意外なことだった。「健康経営優良法人」のパンフレットを見せながら、彼女は言った。\n\n「社長も従業員さんも、皆さん少しお疲れの顔をしています。良い仕事は、健康な心と体からです。試しに、『OFFICE DE YASAI』みたいな設置型の社食サービスを導入してみませんか？」\n\n「野菜？うちはIT企業じゃないんだぞ」健司は眉をひそめた。\n\nしかし、「社長が釣りに行くための第一歩です」という由美の言葉に、なぜか説得されてしまった。\n\n結果は驚きだった。休憩室に置かれた冷蔵庫のサラダや総菜は、あっという間になくなった。特に、コンビニ弁当ばかりだった若い従業員たちの食いつきが良かった。「社長、これ、いいっすね」。そんな声が、健司の耳に直接届くようになった。工場の空気が、ほんの少しだけ軽くなった。\n\nある日、由美はノートパソコンを開き、自作のツールを見せた。それは『企業の磨き上げプランジェネレーター』と名付けられたウェブサイトだった。\n\n「社長、今の取り組みをチェックしてみましょう」\n\n由美が「健康と働きがい」のカテゴリーにある「食生活サポートの導入」をクリックすると、レーダーチャートのグラフが一つの方向に少しだけ伸びた。しかし、他の項目は低いままだ。特に「スキルとキャリア」の項目が著しく低い。\n\n「そういえば…」健司は口を開いた。「ベテランの鈴木さんは、もうすぐ定年だが、彼の持っている技術は誰も引き継げていない。彼がいなくなったら、うちの品質はガタ落ちだ…」\n\nそれは、ずっと見て見ぬふりをしてきた、この工場の最大の課題だった。\n\n第三章：輝き始める現場\n\n由美の提案はシンプルだった。\n\n「毎週金曜の終業前に30分だけ、『鈴木塾』を開きましょう。鈴木さんが先生になって、若手に一つだけ技術を教えるんです。それが、磨き上げの第二歩です」\n\n「鈴木塾」はすぐに始まった。最初は戸惑っていた鈴木も、熱心に質問する若手たちを前に、次第に顔がほころんでいった。それは、これまで健司しか担ってこなかった「人材育成」という役割が、現場に生まれた瞬間だった。\n\n同時に、由美は健司に「シンプルな統合報告書」の作成を勧めた。売上や利益だけでなく、「健康経営の取り組み」や「鈴木塾による技術伝承」といった、この数ヶ月の『磨き上げ』の成果をA4一枚にまとめるのだ。\n\n「これは、銀行や取引先に見せるためだけじゃありません。従業員の皆さんと、そして未来の後継者に見せるための、『会社の価値の証明書』です」\n\n健司は、初めて客観的な視点で自分の会社を見つめた。数字だけの会社ではない。人が育ち、健康を気遣う文化が生まれ始めている。悪くない、と素直に思えた。\n\nその矢先、新規の取引先から、極めて精度の高い、難しい加工依頼が舞い込んだ。以前なら、健司が一人で徹夜して仕上げるような仕事だ。\n\nだが、彼は違った。鈴木と、「鈴木塾」の一期生である若手二人を呼び、言った。\n\n「この仕事、お前たちに任せる。俺は監督に徹するから、やってみろ」\n\n若者たちの目が輝いた。健司は手を出すのをぐっとこらえ、彼らの作業を見守った。夜6時、定時のチャイムが鳴る。健司はタイムカードを押した。まだ工場では作業が続いていたが、彼の心は不思議なほど穏やかだった。\n\nエピローグ\n\n一年後。田中製作所の事務所には、「健康経営優良法人2026」の認定証が誇らしげに飾られている。あの難しい仕事を見事にやり遂げた若者たちは、今や工場の中心メンバーだ。鈴木は定年を延長し、楽しそうに技術指導を続けている。\n\n健司は、一週間の休暇を取り、念願だった北海道の渓流で釣りをしていた。糸を垂らしながら、彼は由美の言葉を思い出していた。\n\n『本質的な輝きは、どんな会社にも必ずあります』\n\n自分の会社にあった輝き。それは、高い技術力だけではなかった。人を思いやる心、成長したいと願う若者の熱意、そして、それらを繋ぎ合わせる「仕組み」だった。由美は、それらを覆っていた埃を払い、光を当て、磨き上げてくれただけなのだ。\n\n川面がキラキラと輝いている。まるで、磨き上げられた自分の会社のように。健司は、満足げに微笑んだ。\n\n（了）';
+
+  const pagesEl = document.getElementById('pages');
+  const grid = document.getElementById('grid');
+  const toc = document.getElementById('toc');
+  const tocList = document.getElementById('tocList');
+  const bmListWrap = document.getElementById('bmListWrap');
+  const bmList = document.getElementById('bmList');
+  const pageInfo = document.getElementById('pageInfo');
+  const slider = document.getElementById('slider');
+  const progressBar = document.getElementById('progressBar');
+  const fontSizeView = document.getElementById('fontSizeView');
+
+  function save(){
+    localStorage.setItem('eb.theme', state.theme);
+    localStorage.setItem('eb.font', String(state.font));
+    localStorage.setItem('eb.lh', String(state.lh));
+    localStorage.setItem('eb.spread', JSON.stringify(state.spread));
+    localStorage.setItem('eb.page', String(state.page));
+    localStorage.setItem('eb.bm', JSON.stringify(state.bm));
+  }
+
+  function applyTheme(){ document.body.setAttribute('data-theme', state.theme); }
+  function setFont(delta){ state.font = Math.max(12, Math.min(28, state.font + delta)); renderPages(true); }
+  function setLH(val){ state.lh = Math.max(1.4, Math.min(2.2, val)); renderPages(true); }
+  function toggleSpread(){ state.spread = !state.spread; renderPages(true); }
+  function toggleToc(){ toc.style.display = toc.style.display === 'none' ? 'block' : 'none'; grid.classList.toggle('toc-open'); }
+  function next(){
+    const step = state.spread ? 2 : 1;
+    goTo(state.page + step);
+  }
+  function prev(){
+    const step = state.spread ? 2 : 1;
+    goTo(state.page - step);
+  }
+  function goTo(p){
+    state.page = Math.max(0, Math.min(p, window.__pages.length-1));
+    updateUI();
+  }
+  function toggleBookmark(){
+    const key = state.spread ? Math.floor(state.page/2)*2 : state.page;
+    const idx = state.bm.indexOf(key);
+    if(idx>=0) state.bm.splice(idx,1);
+    else state.bm.push(key);
+    updateBM();
+    save();
+  }
+  function updateBM(){
+    bmListWrap.style.display = state.bm.length ? 'block' : 'none';
+    bmList.innerHTML = '';
+    state.bm.sort((a,b)=>a-b).forEach(p=>{ 
+      const b = document.createElement('button');
+      b.className = 'badge';
+      b.textContent = 'p.'+(p+1);
+      b.onclick = ()=> goTo(p);
+      bmList.appendChild(b);
+    });
+  }
+
+  // TOC detection
+  function buildTOC(){
+    tocList.innerHTML = '';
+    const lines = content.split(/\n+/);
+    let idx = 0;
+    lines.forEach(line=>{
+      if(/^第[一二三四五六七八九十0-9]+章/.test(line) || /プロローグ|エピローグ/.test(line)){
+        const li = document.createElement('li');
+        const btn = document.createElement('button');
+        btn.textContent = line.trim();
+        btn.style.cssText = 'width:100%;text-align:left;padding:6px 8px;border-radius:10px;border:1px solid rgba(255,255,255,.2);margin:4px 0;cursor:pointer;background:transparent';
+        btn.onmouseover = ()=> btn.style.background='rgba(255,255,255,.1)';
+        btn.onmouseout = ()=> btn.style.background='transparent';
+        btn.onclick = ()=>{ 
+          const p = Math.floor(idx / (window.__cpp||800));
+          state.page = state.spread ? p - (p%2) : p;
+          updateUI();
+        };
+        li.appendChild(btn);
+        tocList.appendChild(li);
+      }
+      idx += line.length + 1;
+    });
+  }
+
+  function estimateCPP(){
+    const viewer = pagesEl.parentElement;
+    const styles = getComputedStyle(viewer);
+    const padX = 32; // approx
+    const padY = 32;
+    const width = viewer.clientWidth - padX;
+    const height = viewer.clientHeight - padY;
+    const columns = (state.spread && width >= 900) ? 2 : 1;
+    const pageWidth = width / columns;
+    const linePx = state.font * state.lh;
+    const linesPerPage = Math.max(8, Math.floor(height / linePx));
+    const charsPerLine = Math.max(12, Math.floor(pageWidth / (state.font * 0.95)));
+    const cpp = Math.max(200, Math.floor(linesPerPage * charsPerLine));
+    return cpp;
+  }
+
+  function renderPages(resetPage){
+    applyTheme();
+    pagesEl.className = 'pages' + (state.spread ? ' spread' : '');
+    pagesEl.style.setProperty('--font', state.font + 'px');
+    pagesEl.style.setProperty('--lh', state.lh);
+    fontSizeView.textContent = state.font + 'px';
+
+    // paginate
+    const cpp = estimateCPP();
+    window.__cpp = cpp;
+    const chunks = [];
+    for(let i=0;i<content.length;i+=cpp) chunks.push(content.slice(i,i+cpp));
+    window.__pages = chunks;
+    if(resetPage) state.page = Math.min(state.page, chunks.length-1);
+
+    updateUI();
+    buildTOC();
+    updateBM();
+  }
+
+  function updateUI(){
+    const chunks = window.__pages || [content];
+    pagesEl.innerHTML = '';
+    if(state.spread){
+      const spreadIndex = Math.floor(state.page/2);
+      const left = chunks[spreadIndex*2] || '';
+      const right = chunks[spreadIndex*2+1] || '';
+      pagesEl.innerHTML = `
+        <div class="page"><article style="font-size:${state.font}px; line-height:${state.lh}">${escapeHTML(left)}</article></div>
+        <div class="page"><article style="font-size:${state.font}px; line-height:${state.lh}">${escapeHTML(right)}</article></div>
+      `;
+      slider.max = Math.max(0, Math.ceil(chunks.length/2)-1);
+      slider.value = spreadIndex;
+      pageInfo.textContent = `ページ ${spreadIndex+1} / ${Math.ceil(chunks.length/2)}`;
+      const progress = ((spreadIndex+1)/Math.max(1,Math.ceil(chunks.length/2)))*100;
+      progressBar.style.width = progress.toFixed(2)+'%';
+    } else {
+      const cur = chunks[state.page] || '';
+      pagesEl.innerHTML = `<div class="page"><article style="font-size:${state.font}px; line-height:${state.lh}">${escapeHTML(cur)}</article></div>`;
+      slider.max = Math.max(0, chunks.length-1);
+      slider.value = state.page;
+      pageInfo.textContent = `ページ ${state.page+1} / ${chunks.length}`;
+      const progress = ((state.page+1)/Math.max(1,chunks.length))*100;
+      progressBar.style.width = progress.toFixed(2)+'%';
+    }
+    save();
+  }
+
+  function escapeHTML(s){
+    return s.replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\'':'&#39;','"':'&quot;'})[c]);
+  }
+
+  // events
+  document.getElementById('themeBtn').onclick = ()=>{
+    const order = ['sepia','light','dark'];
+    const i = order.indexOf(state.theme);
+    state.theme = order[(i+1)%order.length];
+    applyTheme(); save();
+  };
+  document.getElementById('smaller').onclick = ()=> setFont(-1);
+  document.getElementById('bigger').onclick = ()=> setFont(1);
+  document.getElementById('lh').oninput = (e)=> setLH(parseFloat(e.target.value));
+  document.getElementById('spreadBtn').onclick = ()=> toggleSpread();
+  document.getElementById('tocBtn').onclick = ()=> toggleToc();
+  document.getElementById('bmBtn').onclick = ()=> toggleBookmark();
+  document.getElementById('prev').onclick = ()=> prev();
+  document.getElementById('next').onclick = ()=> next();
+  slider.oninput = (e)=> {
+    const v = parseInt(e.target.value, 10);
+    if(state.spread) state.page = v*2; else state.page = v;
+    updateUI();
+  };
+
+  window.addEventListener('resize', ()=> renderPages(false));
+  window.addEventListener('keydown', (e)=>{
+    if(e.key === 'ArrowRight') next();
+    if(e.key === 'ArrowLeft') prev();
+    if(e.key === ' ') { e.preventDefault(); toggleSpread(); }
+  });
+
+  // init
+  applyTheme();
+  document.body.setAttribute('data-theme', state.theme);
+  document.getElementById('lh').value = state.lh;
+  renderPages(false);
+</script>
+</body>
+</html>
